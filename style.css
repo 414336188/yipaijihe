@@ -1,0 +1,158 @@
+/* 一拍即合 官方網站
+ *
+ * 配色沿用 App(src/components/AboutScreen.tsx 的 Colors)。
+ * ⚠ 兩處刻意加深:App 的 pinkDeep #C9939B 配白字僅約 2.6:1,手機小按鈕
+ *   勉強可用,網頁上不符 WCAG AA(4.5:1)。故按鈕與強調文字改用加深的
+ *   同色系變體,識別不變。
+ */
+:root{
+  --paper:#FAF8F6; --card:#FFFFFF; --card-2:#F7F1EE;
+  --rose:#C9939B; --rose-soft:#F5DEE1; --rose-ink:#A96F79;
+  --mint:#E3F1EE; --mint-ink:#4E6E66;
+  --ink:#4A4441; --ink-2:#6E6561; --muted:#8C8380; --faint:#B5ABA7;
+  --line:#EDE5DC; --line-2:#DFD3C8;
+  --btn-bg:#96606A; --btn-ink:#FFFFFF; --accent-text:#8E5A64;
+  --shadow:0 1px 2px rgba(74,68,65,.04), 0 14px 34px -24px rgba(74,68,65,.28);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#1A1614; --card:#221D1B; --card-2:#2A2320;
+    --rose:#D9A5AC; --rose-soft:#3A2A2C; --rose-ink:#E8C0C5;
+    --mint:#233330; --mint-ink:#9CC4BB;
+    --ink:#EFE8E4; --ink-2:#CFC5C0; --muted:#9E938E; --faint:#7A6F6A;
+    --line:#332B27; --line-2:#453A35;
+    --btn-bg:#D9A5AC; --btn-ink:#1A1614; --accent-text:#E8C0C5;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 14px 34px -24px rgba(0,0,0,.85);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#1A1614; --card:#221D1B; --card-2:#2A2320;
+  --rose:#D9A5AC; --rose-soft:#3A2A2C; --rose-ink:#E8C0C5;
+  --mint:#233330; --mint-ink:#9CC4BB;
+  --ink:#EFE8E4; --ink-2:#CFC5C0; --muted:#9E938E; --faint:#7A6F6A;
+  --line:#332B27; --line-2:#453A35;
+  --btn-bg:#D9A5AC; --btn-ink:#1A1614; --accent-text:#E8C0C5;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 14px 34px -24px rgba(0,0,0,.85);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:'Noto Sans TC',system-ui,sans-serif;
+  font-size:16px; line-height:1.85; -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{
+  font-family:'LXGW WenKai TC','Noto Sans TC',serif;
+  font-weight:400; line-height:1.4; margin:0; text-wrap:balance;
+}
+p{margin:0 0 14px; max-width:62ch}
+a{color:var(--accent-text)}
+a:focus-visible{outline:2px solid var(--accent-text); outline-offset:2px; border-radius:3px}
+.wrap{max-width:840px; margin:0 auto; padding:0 26px 96px}
+
+/* ── 首頁頁首 ─────────────────────────── */
+.mast{padding:76px 0 54px; text-align:center}
+.script{
+  font-family:'LXGW WenKai TC',serif; font-size:15px; color:var(--accent-text);
+  letter-spacing:.22em; font-style:italic; margin-bottom:18px;
+}
+.mast h1{font-size:clamp(40px,8vw,62px); letter-spacing:.14em; color:var(--ink)}
+.tagline{margin:20px auto 0; max-width:30ch; color:var(--ink-2); font-size:17px; font-weight:300}
+.rule{width:52px; height:1px; margin:34px auto 0; background:var(--rose); opacity:.55}
+
+/* ── 內頁頁首 ─────────────────────────── */
+.mast.doc{padding:52px 0 34px; text-align:left}
+.back{
+  display:inline-block; margin-bottom:22px; font-size:14px; text-decoration:none;
+}
+.back:hover{text-decoration:underline}
+.doc-title{font-size:clamp(28px,5vw,38px); letter-spacing:.08em}
+.updated{margin-top:10px; color:var(--muted); font-size:13.5px}
+
+/* ── 區塊 ─────────────────────────────── */
+section{margin-top:64px}
+.shead{text-align:center; margin-bottom:30px}
+.shead h2{font-size:26px; letter-spacing:.08em}
+.shead .sub{margin-top:8px; color:var(--ink-2); font-size:14px}
+
+.cards{display:grid; gap:16px; grid-template-columns:1fr}
+@media (min-width:720px){ .cards{grid-template-columns:repeat(3,1fr)} }
+.card{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:16px; padding:24px 22px; box-shadow:var(--shadow);
+}
+.card .ico{
+  width:42px; height:42px; border-radius:21px; background:var(--rose-soft);
+  display:flex; align-items:center; justify-content:center;
+  font-size:19px; margin-bottom:15px; color:var(--accent-text);
+}
+.card h3{font-size:19px; letter-spacing:.05em; margin-bottom:8px}
+.card p{font-size:14.5px; color:var(--ink-2); margin:0}
+
+/* ── 面板 ─────────────────────────────── */
+.panel{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:18px; padding:30px 28px; box-shadow:var(--shadow);
+}
+.plist{list-style:none; margin:0; padding:0; display:grid; gap:18px}
+.plist li{display:flex; gap:14px; align-items:flex-start}
+.tick{
+  flex:none; width:26px; height:26px; border-radius:13px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; margin-top:2px;
+}
+.tick.y{background:var(--mint); color:var(--mint-ink)}
+.tick.n{background:var(--rose-soft); color:var(--accent-text)}
+.plist b{display:block; font-weight:500; color:var(--ink)}
+.plist span{font-size:14.5px; color:var(--ink-2)}
+
+/* ── 政策內文 ─────────────────────────── */
+.doc-body h2{
+  font-size:21px; letter-spacing:.06em; margin:34px 0 12px;
+  padding-top:22px; border-top:1px solid var(--line);
+}
+.doc-body h2:first-of-type{margin-top:0; padding-top:0; border-top:0}
+.doc-body h3{font-size:16.5px; letter-spacing:.04em; margin:20px 0 8px; color:var(--ink)}
+.doc-body p{font-size:15px; color:var(--ink-2)}
+.doc-body ul{margin:0 0 14px; padding-left:22px; max-width:62ch}
+.doc-body li{margin-bottom:10px; font-size:15px; color:var(--ink-2)}
+.doc-body strong{color:var(--ink); font-weight:500}
+.callout{
+  background:var(--mint); border-radius:12px;
+  padding:15px 18px; margin:14px 0 !important; max-width:none !important;
+}
+
+/* ── 窗口 ─────────────────────────────── */
+.contact{
+  background:var(--mint); border:1px solid var(--line);
+  border-radius:18px; padding:32px 28px; text-align:center;
+}
+.contact h2{font-size:24px; letter-spacing:.06em}
+.contact p{margin:12px auto 0; max-width:46ch; color:var(--ink-2); font-size:15px}
+.btn{
+  display:inline-flex; align-items:center; gap:8px; margin-top:22px;
+  padding:13px 28px; border-radius:999px; text-decoration:none;
+  background:var(--btn-bg); color:var(--btn-ink);
+  font-size:15px; font-weight:500; letter-spacing:.04em;
+  transition:opacity .16s ease;
+}
+.btn:hover{opacity:.86}
+.btn:focus-visible{outline:2px solid var(--accent-text); outline-offset:3px}
+
+.faq{display:grid; gap:14px}
+.q{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px 22px}
+.q h3{font-size:16.5px; margin-bottom:6px; letter-spacing:.03em}
+.q p{font-size:14.5px; color:var(--ink-2); margin:0}
+
+footer{
+  margin-top:74px; padding-top:26px; border-top:1px solid var(--line);
+  text-align:center; color:var(--faint); font-size:13px;
+}
+footer .fname{
+  font-family:'LXGW WenKai TC',serif; font-size:15px; color:var(--muted);
+  letter-spacing:.16em; display:block; margin-bottom:6px;
+}
+footer .links{margin-top:10px}
+footer .links a{margin:0 8px; font-size:13px}
+
+@media (prefers-reduced-motion: reduce){ *{transition:none !important} }
