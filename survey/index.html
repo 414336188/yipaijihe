@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>人像影像成對比較問卷 · 一拍即合</title>
+<style>
+  /* 照片區 --stage 與選取狀態（白底黑字）刻意不用任何色相：色彩與膚色是受測維度之一，
+     介面上的彩色會影響受訪者對照片色彩的判斷（ITU-T P.910 觀看環境要求）。 */
+  :root{
+    --stage:#808080;
+    --paper:#1a1614;
+    --card:#211d1b;
+    --line:#332b27;
+    --line-2:#453a35;
+    --ink:#efe8e4;
+    --ink-2:#cfc5c0;
+    --muted:#9e938e;
+    --faint:#7a6f6a;
+    --pick:#ffffff;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 14px 34px -24px rgba(0,0,0,.85);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--paper);color:var(--ink);
+    font-family:"Noto Sans TC","Microsoft JhengHei UI","Microsoft JhengHei","PingFang TC","Hiragino Sans TC",sans-serif;
+    font-size:15px;line-height:1.75;
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+  h1,.script{font-family:"LXGW WenKai TC","Noto Sans TC","Microsoft JhengHei UI","Microsoft JhengHei",serif;font-weight:400}
+
+  .bar{
+    flex:0 0 auto;display:flex;align-items:center;gap:20px;
+    padding:10px 22px;background:var(--card);border-bottom:1px solid var(--line);font-size:13px;
+  }
+  .bar .count{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--muted)}
+  .track{flex:1;height:3px;border-radius:999px;background:var(--line);max-width:420px;overflow:hidden}
+  .fill{height:100%;background:var(--ink);width:0;transition:width .25s}
+
+  .stage{
+    flex:1 1 auto;background:var(--stage);
+    display:flex;align-items:center;justify-content:center;
+    gap:clamp(14px,2.5vw,36px);padding:14px 18px 18px;min-height:0;
+  }
+  .slot{height:100%;min-width:0;display:flex;flex-direction:column;align-items:center}
+  .side{flex:0 0 auto;height:20px;font-size:12px;color:#333;letter-spacing:.35em;padding-left:.35em}
+  .slot img{height:calc(100% - 20px);width:auto;max-width:44vw;object-fit:contain;display:block}
+
+  .panel{
+    flex:0 0 auto;background:var(--card);
+    border-top:1px solid var(--line);border-radius:18px 18px 0 0;
+    box-shadow:0 -10px 28px -20px rgba(0,0,0,.7);
+    padding:14px 22px 16px;max-height:46vh;overflow-y:auto;
+  }
+  .q,.ends{display:grid;grid-template-columns:148px 358px;gap:14px}
+  .q{align-items:center;padding:5px 0;border-bottom:1px solid var(--line)}
+  .q:last-of-type{border-bottom:none}
+  .q .name{font-size:14px;line-height:1.35}
+  .q .name small{display:block;color:var(--muted);font-size:12px}
+  .opts{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .opts button{
+    height:36px;background:transparent;border:1px solid var(--line);border-radius:7px;
+    color:var(--ink);font:inherit;font-size:15px;font-variant-numeric:tabular-nums;
+    cursor:pointer;transition:border-color .12s,background .12s;
+  }
+  .opts button:hover{border-color:var(--line-2)}
+  .opts button:focus-visible{outline:2px solid var(--pick);outline-offset:2px}
+  .opts button[aria-pressed="true"]{background:var(--pick);border-color:var(--pick);color:#14100e;font-weight:600}
+  .ends{font-size:12px;color:var(--muted);padding-bottom:5px}
+  .ends span{display:flex;justify-content:space-between}
+  .ends i{font-style:normal}
+
+  .foot{display:flex;align-items:center;gap:16px;margin-top:12px}
+  .hint{font-size:12px;color:var(--muted)}
+  .next{
+    margin-left:auto;background:var(--pick);color:#14100e;border:none;border-radius:999px;
+    padding:11px 30px;font:inherit;font-size:15px;font-weight:600;letter-spacing:.03em;
+    cursor:pointer;box-shadow:var(--shadow);transition:opacity .16s ease;
+  }
+  .next:hover:not(:disabled){opacity:.88}
+  .next:disabled{background:var(--line);color:var(--faint);box-shadow:none;cursor:not-allowed}
+
+  .sheet{
+    position:fixed;inset:0;background:var(--paper);
+    display:flex;align-items:center;justify-content:center;
+    padding:40px 32px;overflow-y:auto;z-index:10;
+  }
+  .sheet .box{max-width:620px;width:100%;margin:auto}
+  .sheet .hero{text-align:center;margin-bottom:30px}
+  .sheet .script{display:block;font-size:13px;font-style:italic;letter-spacing:.3em;color:var(--muted);margin-bottom:16px}
+  .sheet h1{font-size:clamp(24px,5vw,30px);letter-spacing:.1em;margin-bottom:10px}
+  .sheet .sub{color:var(--muted);font-size:13px;letter-spacing:.04em}
+  .sheet .rule{width:44px;height:1px;margin:22px auto 0;background:var(--line-2)}
+  .sheet p{margin-bottom:14px;color:var(--ink-2)}
+  .sheet ul{margin:0 0 4px 20px;color:var(--ink-2)}
+  .sheet li{margin-bottom:8px}
+  .sheet .card{
+    background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:22px 24px 18px;box-shadow:var(--shadow);margin-bottom:22px;
+  }
+  .sheet .card p:last-child,.sheet .card ul{margin-bottom:0}
+  .sheet .scale{
+    display:grid;grid-template-columns:repeat(7,1fr);
+    border:1px solid var(--line);border-radius:12px;overflow:hidden;
+    margin:10px 0 22px;text-align:center;font-size:12px;background:var(--card);box-shadow:var(--shadow);
+  }
+  .sheet .scale div{padding:11px 3px;border-right:1px solid var(--line)}
+  .sheet .scale div:last-child{border-right:none}
+  .sheet .scale b{display:block;font-size:15px;font-weight:600;margin-bottom:3px;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .sheet .actions{display:flex;justify-content:center;gap:12px;margin-top:28px;flex-wrap:wrap}
+  .sheet button{
+    background:var(--pick);color:#14100e;border:none;border-radius:999px;
+    padding:13px 32px;font:inherit;font-size:15px;font-weight:600;letter-spacing:.03em;
+    cursor:pointer;box-shadow:var(--shadow);transition:opacity .16s ease;
+  }
+  .sheet button:hover{opacity:.88}
+  .sheet button:disabled{opacity:.4;cursor:default}
+  .sheet .ghost{background:transparent;color:var(--ink-2);border:1px solid var(--line);box-shadow:none}
+  .hidden{display:none !important}
+  @media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+
+<section class="sheet hidden" id="setupError">
+  <div class="box">
+    <div class="hero">
+      <span class="script">Setup Required</span>
+      <h1>問卷尚未設定完成</h1>
+      <div class="sub">這個畫面是給研究人員看的</div>
+      <div class="rule"></div>
+    </div>
+    <div class="card"><ul id="setupErrors"></ul></div>
+    <p>修正後重新整理此頁。可開啟 setup-check.html 檢查設定。</p>
+  </div>
+</section>
+
+<section class="sheet hidden" id="intro">
+  <div class="box">
+    <div class="hero">
+      <span class="script">Paired Comparison</span>
+      <h1>人像影像成對比較</h1>
+      <div class="sub">共 <span id="nGroups"></span> 組、<span id="nQuestions"></span> 題，約 15 至 20 分鐘</div>
+      <div class="rule"></div>
+    </div>
+    <p>每一組會同時出現兩張人像照片，拍的是同一個人、同一個場景，但經過不同的處理。請判斷<strong>右圖相對於左圖</strong>的優劣：</p>
+    <div class="scale">
+      <div><b>−3</b>明顯較差</div><div><b>−2</b>較差</div><div><b>−1</b>略差</div>
+      <div><b>0</b>兩者相當</div>
+      <div><b>+1</b>略佳</div><div><b>+2</b>較佳</div><div><b>+3</b>明顯較佳</div>
+    </div>
+    <div class="card">
+      <ul>
+        <li>依你自己的直覺判斷，沒有標準答案。</li>
+        <li>每一組都要評「整體美感」；部分組別會多問構圖、臉部幾何或色彩，這是正常的。</li>
+        <li>可用鍵盤 1 至 7 作答、Enter 進入下一組。</li>
+        <li>中途關閉視窗，用同一個瀏覽器重新開啟會回到原進度。</li>
+        <li>作答內容以匿名方式記錄，僅供研究分析使用。建議使用電腦作答。</li>
+      </ul>
+    </div>
+    <div class="actions"><button id="startBtn">開始作答</button></div>
+  </div>
+</section>
+
+<section class="sheet hidden" id="done">
+  <div class="box">
+    <div class="hero">
+      <span class="script">Survey Complete</span>
+      <h1>作答完成</h1>
+      <div class="sub">謝謝你的參與</div>
+      <div class="rule"></div>
+    </div>
+    <div class="card"><p id="doneMsg"></p></div>
+    <div class="actions">
+      <button id="resendBtn">重新送出</button>
+      <button class="ghost" id="resetBtn">清除紀錄重做</button>
+    </div>
+  </div>
+</section>
+
+<div class="bar hidden" id="bar">
+  <div class="track"><div class="fill" id="fill"></div></div>
+  <span class="count" id="count"></span>
+</div>
+
+<div class="stage hidden" id="stage">
+  <div class="slot"><span class="side">左</span><img id="imgL" alt="左圖"></div>
+  <div class="slot"><span class="side">右</span><img id="imgR" alt="右圖"></div>
+</div>
+
+<div class="panel hidden" id="panel">
+  <div class="ends"><span></span><span><i>右圖較差</i><i>兩者相當</i><i>右圖較佳</i></span></div>
+  <div id="qs"></div>
+  <div class="foot">
+    <span class="hint">鍵盤 1–7 作答，Enter 下一組</span>
+    <button class="next" id="next" disabled>下一題</button>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="manifest.js"></script>
+<script src="core.js"></script>
+<script src="storage.js"></script>
+<script src="survey.js"></script>
+</body>
+</html>

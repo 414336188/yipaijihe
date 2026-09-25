@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>問卷設定檢查 · 一拍即合</title>
+<style>
+  :root{--paper:#1a1614;--card:#211d1b;--line:#332b27;--ink:#efe8e4;--ink-2:#cfc5c0;--muted:#9e938e}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei UI","Microsoft JhengHei",sans-serif;font-size:15px;line-height:1.7}
+  .wrap{max-width:760px;margin:0 auto;padding:40px 24px 80px}
+  h1{font-weight:400;font-size:26px;letter-spacing:.08em;margin:0 0 6px}
+  .lead{color:var(--muted);margin:0 0 28px}
+  h2{font-weight:500;font-size:16px;margin:28px 0 10px}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  td{padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td:first-child{color:var(--ink-2);width:46%}
+  td.v{font-variant-numeric:tabular-nums;font-weight:600}
+  code{font-size:13px;color:var(--ink-2)}
+  .ok{color:var(--ink)} .bad{color:var(--ink);font-weight:600}
+  .status{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 18px}
+  .status ul{margin:6px 0 0 20px;padding:0}
+  button{background:#fff;color:#14100e;border:none;border-radius:999px;padding:10px 24px;font:inherit;font-weight:600;cursor:pointer;margin-top:12px}
+  button:disabled{opacity:.4;cursor:default}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>問卷設定檢查</h1>
+  <p class="lead">此頁讀取 <code>config.js</code> 與 <code>manifest.js</code>。修改 config.js 後重新整理此頁，下方數字會跟著更新。</p>
+
+  <h2>可調整（config.js）</h2>
+  <table id="tAdjust"></table>
+
+  <h2>固定（依企畫書）</h2>
+  <table id="tFixed"></table>
+
+  <h2>推算</h2>
+  <table id="tDerived"></table>
+
+  <h2>設定狀態</h2>
+  <div class="status" id="status"></div>
+
+  <h2>照片載入檢查</h2>
+  <div class="status">
+    <div id="photoResult">逐一載入 manifest.js 列出的全部照片，確認 PHOTO_BASE 位置正確、檔案都在。</div>
+    <button id="photoBtn">開始檢查</button>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="manifest.js"></script>
+<script src="core.js"></script>
+<script>
+  const CFG = window.SURVEY_CONFIG;
+  const MANIFEST = window.SURVEY_MANIFEST;
+
+  function fill(tableId, rows) {
+    const table = document.getElementById(tableId);
+    for (const [label, value] of rows) {
+      const tr = table.insertRow();
+      tr.insertCell().textContent = label;
+      const td = tr.insertCell();
+      td.className = "v";
+      td.textContent = value;
+    }
+  }
+
+  const fixed = planFixed();
+  fill("tFixed", [
+    ["每張人像的版本數（H0–H7）", fixed.versionsPerPortrait],
+    ["每位受訪者分到的人像數", fixed.portraitsPerRespondent],
+    ["每張人像的題數", fixed.questionsPerPortrait],
+    ["每位受訪者的正式比較", `${fixed.mainGroups} 組、${fixed.mainQuestions} 題`],
+    ["每位受訪者合計（含 1 題注意力檢核）", `${fixed.totalGroups} 組、${fixed.totalQuestions} 題`],
+  ]);
+
+  if (CFG) {
+    const t = CFG.T_PORTRAITS, k = CFG.K_RESPONDENTS;
+    fill("tAdjust", [
+      ["t　拍攝的人像數量（T_PORTRAITS）", t],
+      ["k　預計受訪者人數（K_RESPONDENTS）", k],
+      ["照片位置（PHOTO_BASE）", CFG.PHOTO_BASE],
+    ]);
+    const d = planDerived(t, k);
+    fill("tDerived", [
+      ["照片總數 = t × 8", d.totalPhotos],
+      ["每張人像預期被評次數 ≈ k × 5 ÷ t", d.expectedRatingsPerPortrait.toFixed(1)],
+      ["每個（人像, 配置）比較的預期次數", d.expectedRatingsPerPortrait.toFixed(1)],
+      ["預期作答資料列數 = k × 36", d.expectedRows],
+      ["預期作答題數 = k × 96", d.expectedAnswers],
+    ]);
+  }
+
+  const errors = validateSetup(CFG, MANIFEST);
+  const status = document.getElementById("status");
+  if (errors.length) {
+    status.innerHTML = '<span class="bad">尚未完成，問卷頁會顯示設定錯誤：</span><ul></ul>';
+    const ul = status.querySelector("ul");
+    for (const e of errors) {
+      const li = document.createElement("li");
+      li.textContent = e;
+      ul.appendChild(li);
+    }
+  } else {
+    status.innerHTML = '<span class="ok">設定正確，問卷可以開始收案。</span>';
+    status.insertAdjacentText("beforeend", `　manifest 版本：${MANIFEST.version}`);
+  }
+
+  const btn = document.getElementById("photoBtn");
+  btn.disabled = !MANIFEST || !CFG;
+  btn.onclick = async () => {
+    btn.disabled = true;
+    const files = Object.values(MANIFEST.images).flatMap(v => Object.values(v));
+    const out = document.getElementById("photoResult");
+    let ok = 0;
+    const failed = [];
+    await Promise.all(files.map(f => new Promise(res => {
+      const img = new Image();
+      img.onload = () => { ok++; out.textContent = `載入中… ${ok} / ${files.length}`; res(); };
+      img.onerror = () => { failed.push(f); res(); };
+      img.src = CFG.PHOTO_BASE + f;
+    })));
+    out.textContent = failed.length
+      ? `${ok} / ${files.length} 張成功，${failed.length} 張載入失敗：${failed.slice(0, 10).join("、")}${failed.length > 10 ? "…" : ""}`
+      : `全部 ${files.length} 張照片都載入成功。`;
+    btn.disabled = false;
+  };
+</script>
+</body>
+</html>
