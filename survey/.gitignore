@@ -1,0 +1,4 @@
+# 受訪照片與由照片產生的檔案不進版本控制（見 README.md「照片與隱私」）
+photos/
+manifest.js
+master_mapping.csv
