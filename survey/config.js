@@ -15,5 +15,9 @@
 window.SURVEY_CONFIG = {
   T_PORTRAITS: 9,
   K_RESPONDENTS: 45,
-  PHOTO_BASE: "photos/",
+  // 照片放在自有伺服器，不進這個公開 repo。
+  // ⚠ 刻意不放 GitHub Pages：repo 是公開的，照片一旦提交就永久留在 git 歷史裡，
+  //   事後刪不掉。放伺服器則隨時可撤下。
+  //   本機測試時改回 "photos/"，並把 manifest.js 與 photos/ 放在 survey/ 底下。
+  PHOTO_BASE: "https://155-68.im.fju.edu.tw/survey-photos/",
 };
