@@ -19,7 +19,7 @@ function backToEmail(message?: string) {
   renderEmail(message);
 }
 
-// ───────── 同意說明（⚠ 草稿，正式發布前需審閱；改文字就要把 CONSENT_VERSION 進版） ─────────
+// ───────── 同意說明（2026-10-18 定稿，對應 CONSENT_VERSION = web-v1；改文字就要進版） ─────────
 function renderConsent() {
   const body = shell(root, { part: '一拍即合 研究問卷' });
   let agreed = false;
@@ -32,12 +32,13 @@ function renderConsent() {
     h('ol', { class: 'parts' },
       h('li', null, h('strong', { text: '濾鏡偏好（44 題，約 7 分鐘）' }), h('br'), '從三張或四張不同調色的照片中，選出你最喜歡的。'),
       h('li', null, h('strong', { text: '照片比較（36 組，約 6 分鐘）' }), h('br'), '比較同一個人的兩個處理版本，評分右邊比左邊好或差。')),
+    h('p', { class: 'hint', text: '你的作答將用於學術研究，比較構圖引導、畸變校正、個人化濾鏡三項功能各自帶來多少改善。' }),
     h('div', { class: 'notice' },
-      h('p', { text: '我們會保存：你的 email、每一題的選擇與作答時間，以及裝置類型與螢幕尺寸。' }),
-      h('p', { text: 'email 用於辨識同一位作答者、避免重複作答，以及受理你的資料刪除申請。不會要求你上傳任何照片。' })),
+      h('p', { text: '我們會保存：你的 email、每一題的選擇與作答時間，以及裝置類型、畫面尺寸與瀏覽器版本。' }),
+      h('p', { text: 'email 用於辨識同一位作答者、避免重複作答。不會要求你上傳任何照片。' })),
     h('div', { class: 'notice' },
       h('p', { text: '參加完全自願，可以隨時關閉頁面離開。之後用同一個瀏覽器開啟這個連結，就能從中斷的地方繼續。' }),
-      h('p', null, '資料的使用與刪除方式，請見', h('a', { text: '隱私權政策', attrs: { href: '../privacy.html', target: '_blank', rel: 'noopener' } }), '。')),
+      h('p', null, '詳細內容請見', h('a', { text: '隱私權政策', attrs: { href: '../privacy.html', target: '_blank', rel: 'noopener' } }), '。')),
     h('label', { class: 'consent', attrs: { for: 'agree' } }, box, h('span', { text: '我已閱讀上述說明，同意參加並保存我的作答紀錄。' })),
     next,
   );
@@ -60,7 +61,7 @@ function renderEmail(message?: string) {
   input.addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter') void submit(); });
   body.append(
     h('h1', { class: 'title', text: '請輸入你的 email' }),
-    h('p', { class: 'hint', text: '用來辨識作答者、避免重複作答。除非你申請刪除資料，我們不會寄信給你。' }),
+    h('p', { class: 'hint', text: '用來辨識作答者、避免重複作答。我們不會寄信給你。' }),
     input, msg, go,
   );
   input.focus();
