@@ -1,0 +1,100 @@
+/* 配色取自 App 的問卷畫面（OnboardingQuestionnaireScreen.tsx 的 Colors） */
+:root {
+  --canvas: #FFF9F6;
+  --card: #FFFFFF;
+  --text: #4A4441;
+  --muted: #8C8380;
+  --faint: #B5ABA7;
+  --pink: #E5C1C5;
+  --pink-deep: #C9939B;
+  --pink-soft: #F5DEE1;
+  --line: #EDE5DC;
+  --error: #C45C5C;
+  --warn: #8A5A00;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--canvas); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  -webkit-text-size-adjust: 100%; }
+body { min-height: 100vh; }
+
+/* ⚠ 題目區限制在手機寬度：電腦上照片若放大好幾倍，細微差異會比在手機上容易看出，
+     網頁與 App 的資料就不可比（ui.ts 的 MAX_WIDTH 與此一致） */
+.page { max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column;
+  padding: env(safe-area-inset-top, 0) 0 env(safe-area-inset-bottom, 0); }
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 8px 4px; }
+.brand { font-size: 13px; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+.icon-btn { width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center;
+  border: 0; background: none; font-size: 30px; line-height: 1; color: var(--text); cursor: pointer; padding: 0; }
+.progress { height: 4px; background: var(--line); margin: 0 16px; border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--pink-deep); transition: width .25s; }
+.body { flex: 1; padding: 16px 16px 32px; display: flex; flex-direction: column; gap: 14px; }
+
+.eyebrow { margin: 0; font-size: 13px; color: var(--pink-deep); font-weight: 700; letter-spacing: .04em; }
+.title { margin: 0; font-size: 20px; line-height: 1.4; font-weight: 700; text-wrap: balance; }
+.lead { margin: 0; font-size: 16px; line-height: 1.6; }
+.hint { margin: 0; font-size: 14px; line-height: 1.6; color: var(--muted); }
+.warn { margin: 0; font-size: 14px; line-height: 1.6; color: var(--warn); }
+.error { margin: 0; font-size: 14px; line-height: 1.5; color: var(--error); }
+.notice { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px;
+  font-size: 14px; line-height: 1.65; }
+.notice p { margin: 0; }
+.notice p + p { margin-top: 6px; }
+.notice a { color: var(--pink-deep); }
+.parts { margin: 0; padding-left: 22px; font-size: 15px; line-height: 1.6; }
+.parts li + li { margin-top: 8px; }
+.center { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; padding: 24px 0; }
+.wait-title { margin: 0; font-size: 18px; font-weight: 700; }
+.done-icon { width: 64px; height: 64px; border-radius: 32px; background: #E3F1EE; color: #6B998E;
+  font-size: 34px; display: flex; align-items: center; justify-content: center; }
+
+.btn { width: 100%; min-height: 50px; border-radius: 25px; font-size: 16px; font-weight: 700; cursor: pointer;
+  border: 0; font-family: inherit; }
+.btn-primary { background: var(--pink-deep); color: #FFF; }
+.btn-secondary { background: none; color: var(--muted); border: 1px solid var(--line); min-height: 44px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn:focus-visible, .choice:focus-visible, .chip:focus-visible, .icon-btn:focus-visible, .input:focus-visible {
+  outline: 3px solid var(--pink); outline-offset: 2px; }
+
+.input { width: 100%; min-height: 50px; border: 1.5px solid var(--line); border-radius: 14px; padding: 0 14px;
+  font-size: 16px; background: var(--card); color: var(--text); font-family: inherit; }
+.consent { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; line-height: 1.55; cursor: pointer; }
+.consent input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--pink-deep); flex: none; }
+
+/* 偏好問卷的選項卡 */
+.choice-grid { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.choice-row { display: flex; gap: 10px; justify-content: center; }
+.choice { padding: 0; border: 1.5px solid var(--line); border-radius: 16px; background: var(--card); overflow: hidden;
+  cursor: pointer; font-family: inherit; }
+.choice.active { border-color: var(--pink-deep); background: var(--pink-soft); }
+.choice:disabled { cursor: default; }
+.frame { position: relative; width: 100%; background: var(--pink-soft); }
+.frame img { width: 100%; height: 100%; display: block; user-select: none; -webkit-user-drag: none; }
+.badge { position: absolute; left: 8px; top: 8px; background: rgba(255,255,255,.92); border-radius: 10px;
+  padding: 2px 8px; font-size: 13px; font-weight: 700; color: var(--text); }
+.check { position: absolute; right: 8px; top: 8px; width: 24px; height: 24px; border-radius: 12px; background: var(--pink-deep);
+  color: #FFF; font-size: 15px; display: flex; align-items: center; justify-content: center; }
+
+/* 研究問卷 */
+.pair { display: flex; justify-content: center; gap: 10px; }
+.pair-cell { display: flex; flex-direction: column; gap: 4px; }
+.side { margin: 0; text-align: center; font-size: 14px; font-weight: 700; color: var(--muted); }
+.photo { border-radius: 12px; background: var(--pink-soft); overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.photo img { width: 100%; height: 100%; object-fit: contain; display: block; user-select: none; -webkit-user-drag: none; }
+.question { display: flex; flex-direction: column; gap: 8px; }
+.prompt { margin: 0; font-size: 15px; line-height: 1.55; font-weight: 700; }
+.scale { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.chip { border: 1.5px solid var(--line); background: var(--card); border-radius: 10px; padding: 6px 0 5px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; font-family: inherit; color: var(--text); min-width: 0; }
+.chip.on { border-color: var(--pink-deep); background: var(--pink-deep); color: #FFF; }
+.chip:disabled { opacity: .5; cursor: default; }
+.chip-num { font-size: 15px; font-weight: 700; }
+.chip-label { font-size: 10px; line-height: 1.2; white-space: nowrap; }
+.footnote { margin: 0; font-size: 12px; line-height: 1.6; color: var(--faint); text-align: center; }
+
+.spinner { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--pink-soft); border-top-color: var(--pink-deep);
+  animation: spin .8s linear infinite; }
+.spinner.small { width: 22px; height: 22px; border-width: 2px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } .progress-fill { transition: none; } }
