@@ -122,7 +122,9 @@ try {
       continue;
     }
     const slot = Math.floor(Math.random() * n);
-    await ev(`document.querySelectorAll('.choice')[${slot}].click()`);
+    // ⚠ 換頁的瞬間可能還讀到上一題（最後一題送出後轉到「正在送出」）：點不到就重新判斷
+    const clicked = await ev(`(() => { const c = document.querySelectorAll('.choice')[${slot}]; if (!c) return false; c.click(); return true; })()`);
+    if (!clicked) { lastKey = ''; await sleep(300); continue; }
     await waitFor(`!document.querySelector('#next').disabled`, '下一題可按');
     lastKey = key;
     await click('#next');
