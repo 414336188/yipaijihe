@@ -57,6 +57,10 @@ try {
   if (dirty) appCommit += '+dirty';
 } catch { /* 沒有 git 時保留 unknown */ }
 
+// ⚠ 版本號同時涵蓋 App 共用模組與網頁版自己的原始碼。第一版只雜湊共用模組，
+//   網頁版改了版本號卻不變，事後就分不出資料是哪一版網頁收的。
+const OWN = ['index.html', 'style.css', ...readdirSync(join(here, 'src')).filter((f) => f.endsWith('.ts')).sort().map((f) => `src/${f}`)];
+for (const f of OWN) sharedHash.update(`web:${f}`).update(readFileSync(join(here, f)));
 const BUILD = `web-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${sharedHash.digest('hex').slice(0, 8)}`;
 
 const esbuild = findEsbuild();

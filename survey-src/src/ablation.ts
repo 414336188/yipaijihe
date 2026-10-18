@@ -15,7 +15,16 @@ const PART = '第二部分・照片比較';
 
 export type AblationOutcome = { kind: 'done' } | { kind: 'auth' };
 
-interface Pick { firstAt: number; lastAt: number; changes: number }
+/**
+ * 一題的點選歷程。⚠ 記下「最後一次點選發生在哪一次造訪」（visit），時間一律以那次
+ * 造訪的畫面出現時刻為基準。
+ *
+ * 為什麼：受測者可能在某一組點了答案、還沒送出就按「回上一組修改」，之後再回來。
+ * App 的寫法是每次造訪重設畫面出現時間、但保留舊的點選時間，兩者一配就算出負的
+ * 決定時間（2026-10-15 的收卷資料中有 1 題因此缺值）。以點選當次的造訪為基準，
+ * 決定時間就不會是負的，而且畫面出現時間與點選時間永遠成對。
+ */
+interface Pick { firstAt: number; lastAt: number; changes: number; visit: number; shownAt: string; shownMs: number }
 
 export function runAblation(root: HTMLElement, uuid: string, wHat: readonly number[]): Promise<AblationOutcome> {
   return new Promise((resolve) => {
@@ -26,14 +35,16 @@ export function runAblation(root: HTMLElement, uuid: string, wHat: readonly numb
     /** 畫面上目前選的分數（含已送出的） */
     const picked: Record<number, CcrScore> = {};
     /**
-     * 伺服器已收下的分數。
+     * 伺服器已收下的分數。回上一組時，沒改的題目不重送。
      *
-     * ⚠ 回上一組時，沒改的題目不重送。App 的寫法是整組重送：回到上一組時
-     *   「畫面出現時間」變成現在，但點選時間還是第一次作答時的，於是決定時間
-     *   算出負數、伺服器存成空值，覆蓋掉原本正確的值（2026-10-15 收卷資料中
-     *   實際出現一筆）。只送真的改過的題目，原本的時間紀錄就不會被破壞。
+     * 這只是省下不必要的請求：伺服器本來就把「同一題重送同一個答案」當成重複
+     * 而略過，時間欄位也只在第一次寫入，不會被覆蓋。（負的決定時間另有原因，
+     * 見上方 Pick 的說明。）
      */
     const submitted: Record<number, CcrScore> = {};
+    /** 跨造訪保留：未送出就離開再回來時，點選歷程仍在 */
+    const picks: Record<number, Pick> = {};
+    let visitSeq = 0;
     let busy = false;
 
     const describe = (e: unknown) => {
@@ -76,9 +87,7 @@ export function runAblation(root: HTMLElement, uuid: string, wHat: readonly numb
       const body = shell(root, { part: PART, progress: pos / Math.max(screens.length, 1) });
       body.append(h('p', { class: 'eyebrow', text: `第 ${pos + 1} / ${screens.length} 組` }));
 
-      // ⚠ 這次造訪的點選歷程。每次進入畫面都重新開始，決定時間才會以「這一次
-      //   畫面出現」為基準。
-      const picks: Record<number, Pick> = {};
+      const visit = ++visitSeq;
       let shownAt = '';
       let shownMs = 0;
       let ready = textOnly;
@@ -117,9 +126,13 @@ export function runAblation(root: HTMLElement, uuid: string, wHat: readonly numb
                   if (busy || !ready) return;
                   const now = Date.now();
                   const prev = picks[t.trial_index];
-                  picks[t.trial_index] = prev
-                    ? { firstAt: prev.firstAt, lastAt: now, changes: prev.changes + 1 }
-                    : { firstAt: now, lastAt: now, changes: 0 };
+                  picks[t.trial_index] = {
+                    firstAt: prev ? prev.firstAt : now,
+                    lastAt: now,
+                    changes: prev ? prev.changes + 1 : 0,
+                    // 基準改為這一次造訪（最後一次點選發生的地方）
+                    visit, shownAt, shownMs,
+                  };
                   picked[t.trial_index] = v;
                   drawQuestions();
                   sync();
@@ -177,15 +190,18 @@ export function runAblation(root: HTMLElement, uuid: string, wHat: readonly numb
             const score = picked[t.trial_index];
             if (submitted[t.trial_index] === score) continue;
             const pk = picks[t.trial_index];
+            // ⚠ 若最後一次點選發生在先前的造訪，畫面停留時間（rt_ms）就不記：
+            //   中間離開去別組的時間會被算進去，與 App 的定義不同。
+            const sameVisit = !!pk && pk.visit === visit;
             await ablation.answer(uuid, {
               session_id: sessionId,
               trial_index: t.trial_index,
               raw_score: score,
-              shown_at: shownAt || undefined,
-              rt_ms: shownMs ? Date.now() - shownMs : undefined,
+              shown_at: (pk ? pk.shownAt : shownAt) || undefined,
+              rt_ms: sameVisit && shownMs ? Date.now() - shownMs : undefined,
               picked_at: pk ? new Date(pk.lastAt).toISOString() : undefined,
               first_picked_at: pk ? new Date(pk.firstAt).toISOString() : undefined,
-              decide_ms: pk && shownMs ? pk.lastAt - shownMs : undefined,
+              decide_ms: pk && pk.shownMs ? pk.lastAt - pk.shownMs : undefined,
               pick_changes: pk ? pk.changes : undefined,
             });
             submitted[t.trial_index] = score;

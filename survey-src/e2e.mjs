@@ -161,6 +161,22 @@ try {
       await sleep(1500);
       await click('#next');
     }
+    // 第 13 組：點完答案「不送出」就回上一組，再回來直接送出 → 決定時間不可為負或缺值
+    //   （App 在這個情境會算出負數；見 ablation.ts 的 Pick 說明）
+    if (screenNo === 12 && !report.revisit.leftUnsubmitted) {
+      await waitFor(`document.querySelector('.eyebrow')?.textContent.startsWith('第 13 ') && document.querySelector('.chip') && !document.querySelector('.chip').disabled`, '到第 13 組');
+      const ts = await ev(`[...new Set([...document.querySelectorAll('.chip')].map(c => Number(c.dataset.trial)))]`);
+      for (const t of ts) await ev(`document.querySelector('.chip[data-trial="${t}"][data-score="1"]').click()`);
+      await sleep(1200);
+      await ev(`[...document.querySelectorAll('.btn-secondary')].find(b => b.textContent === '回上一組修改').click()`);
+      await waitFor(`document.querySelector('.eyebrow')?.textContent.startsWith('第 12 ') && document.querySelector('.chip') && !document.querySelector('.chip').disabled`, '回到第 12 組');
+      await sleep(2500);
+      await click('#next');
+      await waitFor(`document.querySelector('.eyebrow')?.textContent.startsWith('第 13 ') && !document.querySelector('#next').disabled`, '再到第 13 組（答案仍保留）');
+      report.revisit.leftUnsubmitted = ts;
+      await click('#next');
+      screensSeen.push({ screenNo: 13, trials: ts, textOnly: false });
+    }
     // 第 9 組送出後：回到第 9 組、改其中一題 → 應重送並記為修改
     if (screenNo === 9 && !report.revisit.changed) {
       await waitFor(`document.querySelector('.eyebrow')?.textContent.startsWith('第 10 ')`, '到第 10 組');
