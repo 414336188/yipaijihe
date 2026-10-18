@@ -4,7 +4,7 @@ import { MesfController } from '@app/modules/mesfController';
 import { MesfApiError } from '@app/modules/mesfApiTypes';
 import type { LoadedImage } from '@app/modules/mesfImage';
 import { API_BASE, BUILD, CONSENT_VERSION, mesfStore } from './core';
-import { button, choiceGrid, errorText, h, layoutChoices, measure, shell, spinner, type Option } from './ui';
+import { button, choiceGrid, errorText, h, layoutChoices, measure, measureBox, onResize, shell, spinner, type Option } from './ui';
 
 // ⚠ 以下文字逐字取自 competition/src/components/OnboardingQuestionnaireScreen.tsx。
 //   check.mjs 會比對兩邊，App 改了這裡沒跟上就會失敗。
@@ -113,11 +113,15 @@ export function runMesf(root: HTMLElement, uuid: string): Promise<MesfOutcome> {
         part: PART,
         progress: cursor / TOTAL_GUESS,
         onBack: cursor > 0 && !busy ? () => { if (ctl.backCalibration()) void renderCalibration(); } : undefined,
+        fill: true,
       });
       body.append(h('p', { class: 'eyebrow', text: `第 ${cursor + 1}／${total} 題` }), h('h1', { class: 'title', text: CALIBRATION_TITLE }));
-      const slot = h('div');
+      const slot = h('div', { class: 'grid-slot' });
       body.append(slot);
       slot.append(spinner('圖片載入中…'));
+      const isLast = cursor + 1 >= total;
+      const next = button(isLast ? '送出' : '下一題', () => void goNext(), { disabled: true, id: 'next' });
+      body.append(next);
       let options: Option[];
       try {
         const imgs = await Promise.all(q.display_candidate_order.map((ci) => loadImage(q.image_ids[ci])));
@@ -132,13 +136,14 @@ export function runMesf(root: HTMLElement, uuid: string): Promise<MesfOutcome> {
       prefetch(ctl.calibrationImageIds(cursor + 1));
       const prior = q.choice_index;
       let selected: number | null = prior === null ? null : q.display_candidate_order.indexOf(prior);
-      const isLast = cursor + 1 >= total;
-      const next = button(isLast ? '送出' : '下一題', () => void goNext(), { disabled: selected === null, id: 'next' });
+      next.disabled = selected === null;
+      slot.replaceChildren();
+      let box = await measureBox(slot);
       const draw = () => {
-        slot.replaceChildren(choiceGrid(layoutChoices(options, true, false), selected, (s) => { selected = s; next.disabled = false; draw(); }, busy));
+        slot.replaceChildren(choiceGrid(layoutChoices(options, true, false, box), selected, (s) => { selected = s; next.disabled = false; draw(); }, busy));
       };
       draw();
-      body.append(next);
+      onResize(slot, async () => { slot.replaceChildren(); box = await measureBox(slot); draw(); });
       const goNext = async () => {
         if (busy || selected === null) return;
         busy = true;
@@ -182,12 +187,17 @@ export function runMesf(root: HTMLElement, uuid: string): Promise<MesfOutcome> {
       const view = ctl.currentComparison();
       if (!view) { void finish(); return; }
       const quad = view.kind === 'quad';
-      const body = shell(root, { part: PART, progress: answeredSoFar() / TOTAL_GUESS });
+      // ⚠ 二選一照 App 不限高度（可捲動）；四選一與校準一樣撐滿一個畫面
+      const body = shell(root, { part: PART, progress: answeredSoFar() / TOTAL_GUESS, fill: quad });
       body.append(h('p', { class: 'eyebrow', text: `第 ${view.position}／${view.total} 題` }),
         h('h1', { class: 'title', text: quad ? QUAD_TITLE : COMPARISON_TITLE }));
-      const slot = h('div');
+      const slot = h('div', { class: quad ? 'grid-slot' : '' });
       body.append(slot);
       slot.append(spinner('圖片載入中…'));
+      const msg = h('div');
+      const isLast = view.position >= view.total;
+      const next = button(isLast ? '完成' : '下一題', () => void goNext(), { disabled: true, id: 'next' });
+      body.append(next, msg);
       let options: Option[];
       try {
         const imgs = await Promise.all(view.candidates.map((c) => loadImage(c.image_id)));
@@ -203,17 +213,16 @@ export function runMesf(root: HTMLElement, uuid: string): Promise<MesfOutcome> {
       if (!body.isConnected) return;
       prefetch(ctl.upcomingComparisonImageIds(1));
       let selected: number | null = null;
-      const msg = h('div');
-      const isLast = view.position >= view.total;
-      const next = button(isLast ? '完成' : '下一題', () => void goNext(), { disabled: true, id: 'next' });
+      if (quad) slot.replaceChildren();
+      let box = quad ? await measureBox(slot) : undefined;
       const draw = () => {
-        slot.replaceChildren(choiceGrid(layoutChoices(options, quad, quad), selected, (s) => {
+        slot.replaceChildren(choiceGrid(layoutChoices(options, quad, quad, box), selected, (s) => {
           if (ctl.hasPendingAnswer) return;
           selected = s; next.disabled = false; draw();
         }, busy || ctl.hasPendingAnswer));
       };
       draw();
-      body.append(next, msg);
+      if (quad) onResize(slot, async () => { slot.replaceChildren(); box = await measureBox(slot); draw(); });
       const after = () => (ctl.stage === 'finish' ? void finish() : void renderComparison());
       const goNext = async () => {
         if (busy || selected === null) return;

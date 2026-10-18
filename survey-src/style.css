@@ -23,6 +23,11 @@ body { min-height: 100vh; }
      網頁與 App 的資料就不可比（ui.ts 的 MAX_WIDTH 與此一致） */
 .page { max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column;
   padding: env(safe-area-inset-top, 0) 0 env(safe-area-inset-bottom, 0); }
+/* 題目畫面：高度固定為一個畫面，圖片區吃掉剩餘空間，按鈕在最下方。
+   電腦上高度上限 844px（iPhone 的畫面高度），避免圖片在大螢幕上比手機大 */
+.page.fill { height: 100vh; height: min(100dvh, 844px); min-height: 0; }
+.body.fill { min-height: 0; overflow: hidden; }
+.grid-slot { flex: 1; min-height: 0; display: flex; align-items: flex-start; justify-content: center; overflow: hidden; }
 .topbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 8px 4px; }
 .brand { font-size: 13px; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
 .icon-btn { width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center;

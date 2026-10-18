@@ -44,7 +44,11 @@ export function errorText(text: string) {
 }
 
 /** 外框：頂部標題列與進度條。回傳內容容器。 */
-export function shell(root: HTMLElement, opts: { part: string; progress?: number; onBack?: () => void }): HTMLElement {
+/**
+ * @param fill 題目畫面：頁面高度固定為一個畫面，「下一題」在最下方，中間剩下的空間
+ *   全部給圖片（與 App 相同的視覺效果）。
+ */
+export function shell(root: HTMLElement, opts: { part: string; progress?: number; onBack?: () => void; fill?: boolean }): HTMLElement {
   root.replaceChildren();
   const back = opts.onBack
     ? h('button', { class: 'icon-btn', text: '‹', attrs: { type: 'button', 'aria-label': '上一題' }, on: { click: opts.onBack } })
@@ -52,8 +56,8 @@ export function shell(root: HTMLElement, opts: { part: string; progress?: number
   const bar = h('div', { class: 'topbar' }, back, h('span', { class: 'brand', text: opts.part }), h('span', { class: 'icon-btn' }));
   const prog = h('div', { class: 'progress' },
     h('div', { class: 'progress-fill', style: { width: `${Math.max(4, Math.min(100, (opts.progress ?? 0) * 100))}%` } }));
-  const body = h('main', { class: 'body' });
-  root.append(h('div', { class: 'page' }, bar, prog, body));
+  const body = h('main', { class: opts.fill ? 'body fill' : 'body' });
+  root.append(h('div', { class: opts.fill ? 'page fill' : 'page' }, bar, prog, body));
   window.scrollTo(0, 0);
   return body;
 }
@@ -71,6 +75,24 @@ const CALIBRATION_ROW_GUTTER = 8;
  */
 export const MAX_WIDTH = 480;
 
+/** 量出圖片區實際可用的寬高（等版面排好後再量）。 */
+export async function measureBox(el: HTMLElement): Promise<{ w: number; h: number }> {
+  await new Promise((r) => requestAnimationFrame(() => r(null)));
+  const r = el.getBoundingClientRect();
+  return { w: Math.floor(r.width), h: Math.floor(r.height) };
+}
+
+/** 視窗大小改變（轉向、網址列收合）時重新排版；畫面離開後自動解除 */
+export function onResize(el: HTMLElement, redraw: () => void) {
+  let t = 0;
+  const fn = () => {
+    if (!el.isConnected) { window.removeEventListener('resize', fn); return; }
+    window.clearTimeout(t);
+    t = window.setTimeout(redraw, 120);
+  };
+  window.addEventListener('resize', fn);
+}
+
 export interface Option {
   slot: number;
   label: string;
@@ -84,12 +106,18 @@ function windowWidth() { return Math.min(window.innerWidth, MAX_WIDTH); }
 
 /**
  * @param fixedHeight 校準題與四選一：圖片要放進一個畫面不需捲動（App 的 calibrationHeight）
+ * @param box 圖片區實際量到的寬高。
+ *   ⚠ App 用「視窗高度 − 300」估算可用高度，300 是依 App 自己的畫面調出來的。
+ *   手機瀏覽器多了網址列與工具列，套用同一個常數會讓圖片沒撐滿、按鈕不在最下方
+ *   （2026-10-18 實機測試回報）。有量到的值就用量到的；排版規則（三角、2×2、
+ *   上下疊）不變，只是尺寸以實際空間計算。
  */
-export function layoutChoices(options: Option[], fixedHeight: boolean, quad: boolean): Placed[][] {
+export function layoutChoices(options: Option[], fixedHeight: boolean, quad: boolean,
+  box?: { w: number; h: number }): Placed[][] {
   const ww = windowWidth();
-  const contentWidth = Math.max(280, ww - 48);
-  const avail = Math.max(240, Math.floor(window.innerHeight - CALIBRATION_CHROME_HEIGHT));
-  const rowContentWidth = fixedHeight ? ww - CALIBRATION_ROW_GUTTER * 2 : contentWidth;
+  const contentWidth = box ? box.w : Math.max(280, ww - 48);
+  const avail = box ? Math.max(160, box.h) : Math.max(240, Math.floor(window.innerHeight - CALIBRATION_CHROME_HEIGHT));
+  const rowContentWidth = box ? box.w : fixedHeight ? ww - CALIBRATION_ROW_GUTTER * 2 : contentWidth;
   const aspect0 = Math.max(options[0]?.aspect ?? 1, 0.1);
 
   if (quad && fixedHeight) {
