@@ -12,6 +12,7 @@ import { API_BASE, ApiError, BUILD, deviceInfo, makeJsonStore, makeMesfStore, re
 import { runMesf, type MesfConfig } from '../mesf';
 import { button, errorText, h, shell, spinner } from '../ui';
 import { v2Fetch } from './adapter';
+import { V2Controller } from './controller';
 
 /** ⚠ 寫進 mesf.sessions.consent_version 與 web_survey_v2_participants.consent_version；改文字就要進版 */
 const CONSENT_VERSION = 'web-v2';
@@ -43,6 +44,8 @@ const MESF_CONFIG: Omit<MesfConfig, 'client'> = {
   waitHint: (sec) => `這一步需要約 ${sec} 秒，請稍候。`,
   restartText: '上次的作答已逾時，需要重新開始。',
   finishText: '正在送出作答',
+  // 可回上一題重選（2026-10-28 使用者決定：只能回上一題、以最後一次為準、注意力題也可改）
+  makeController: (...args) => new V2Controller(...args),
 };
 
 const root = document.getElementById('app') as HTMLElement;

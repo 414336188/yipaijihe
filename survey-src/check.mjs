@@ -62,6 +62,18 @@ check('研究問卷影像寬度公式與 App 相同（(寬 − 50) / 2、高 = �
   abl.includes('Math.floor((width - 50) / 2)') && abl.includes('cellW * 1.33')
   && webAbl.includes('- 50) / 2)') && webAbl.includes('cellW * 1.33'));
 
+// ── v2 回上一題依賴的控制器內部（src/v2/controller.ts）──
+// ⚠ 這些不在 App 的公開介面上；App 改了寫法，v2 的「回上一題」就可能錯位，所以在這裡擋下建置。
+const ctlSrc = read(join(app, 'src/modules/mesfController.ts'));
+check('控制器內部：private position／flat／persist 仍存在',
+  ctlSrc.includes('private position = 0;') && ctlSrc.includes('private flat: FlatQuestion[]') && ctlSrc.includes('private async persist()'));
+check('控制器 resume：題號＝已送出作答數',
+  ctlSrc.includes('const syncedCount = record.answers.filter((a) => a.synced).length;')
+  && ctlSrc.includes('this.position = Math.min(syncedCount, this.flat.length);'));
+check('控制器：answerComparison 經 retryPending 送出、成功後 position += 1',
+  ctlSrc.includes('await this.retryPending();') && ctlSrc.includes('this.position += 1;'));
+check('控制器：本機作答紀錄有 chosen_side', ctlSrc.includes("chosen_side: 'left' | 'right' | null;"));
+
 // ── 電腦版限制寬度 ──
 const maxW = constOf(webUi, 'MAX_WIDTH');
 check('電腦版題目區寬度上限（ui.ts 與 style.css 一致）', maxW !== null && css.includes(`max-width: ${maxW}px`), `${maxW}px`);

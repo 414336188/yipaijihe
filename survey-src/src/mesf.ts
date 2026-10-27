@@ -49,6 +49,19 @@ export interface MesfConfig {
   restartText: string;
   /** 最後送出（/complete）時的等待文字 */
   finishText: string;
+  /** 換用 MesfController 的子類別（v2：可回上一題）。未給即 App 原本的控制器（v1：作答即鎖定） */
+  makeController?: (...args: ConstructorParameters<typeof MesfController>) => MesfController;
+}
+
+/** 控制器若提供這兩個方法，比較題就顯示「上一題」（見 src/v2/controller.ts）。 */
+interface BackCapable {
+  canGoBack(): boolean;
+  /** 回傳上一題原本點選的畫面位置，供預選 */
+  goBack(): Promise<number | null>;
+}
+
+function backCapable(c: MesfController): c is MesfController & BackCapable {
+  return typeof (c as Partial<BackCapable>).goBack === 'function';
 }
 
 /**
@@ -76,7 +89,8 @@ export function runMesf(root: HTMLElement, uuid: string, cfg: MesfConfig): Promi
   return new Promise((resolve) => {
     const client = cfg.client(uuid);
     // ⚠ 第五個參數是同意書版本：網頁版必須傳 web-v1／web-v2，這是分辨資料來源的唯一欄位
-    const ctl = new MesfController(client, mesfStore, BUILD, () => new Date(), cfg.consentVersion);
+    const ctlArgs: ConstructorParameters<typeof MesfController> = [client, mesfStore, BUILD, () => new Date(), cfg.consentVersion];
+    const ctl = cfg.makeController ? cfg.makeController(...ctlArgs) : new MesfController(...ctlArgs);
 
     // 圖片快取：App 用 imageCache，這裡用 Promise 快取，失敗的不留
     const imgCache = new Map<string, Promise<LoadedImage>>();
@@ -236,12 +250,28 @@ export function runMesf(root: HTMLElement, uuid: string, cfg: MesfConfig): Promi
     };
 
     // ───────── 比較：24 題（二選一與四選一） ─────────
-    const renderComparison = async () => {
+    // preselect：回上一題時預選原本點的那一側（v2）
+    const renderComparison = async (preselect: number | null = null) => {
       const view = ctl.currentComparison();
       if (!view) { void finish(); return; }
       const quad = view.kind === 'quad';
+      const goBack = async () => {
+        if (busy || !backCapable(ctl)) return;
+        busy = true;
+        try {
+          const side = await ctl.goBack();
+          busy = false;
+          void renderComparison(side);
+        } catch (e) {
+          busy = false;
+          fail(e, () => void renderComparison());
+        }
+      };
       // ⚠ 二選一照 App 不限高度（可捲動）；四選一與校準一樣撐滿一個畫面
-      const body = shell(root, { part: PART, progress: answeredSoFar() / TOTAL_GUESS, fill: quad });
+      const body = shell(root, {
+        part: PART, progress: answeredSoFar() / TOTAL_GUESS, fill: quad,
+        onBack: backCapable(ctl) && ctl.canGoBack() ? () => void goBack() : undefined,
+      });
       body.append(h('p', { class: 'eyebrow', text: `第 ${view.position}／${view.total} 題` }),
         h('h1', { class: 'title', text: quad ? QUAD_TITLE : COMPARISON_TITLE }));
       const slot = h('div', { class: quad ? 'grid-slot' : '' });
@@ -265,7 +295,8 @@ export function runMesf(root: HTMLElement, uuid: string, cfg: MesfConfig): Promi
       }
       if (!body.isConnected) return;
       prefetch(ctl.upcomingComparisonImageIds(1));
-      let selected: number | null = null;
+      let selected: number | null = preselect;
+      next.disabled = selected === null;
       if (quad) slot.replaceChildren();
       let box = quad ? await measureBox(slot) : undefined;
       const draw = () => {
