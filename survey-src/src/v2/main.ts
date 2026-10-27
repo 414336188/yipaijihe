@@ -155,7 +155,11 @@ function renderEmail(message?: string) {
         msg.append(h('p', { class: 'notice', text: r.message ?? '請用原本作答的裝置與瀏覽器開啟這個連結繼續。' }));
         return;
       }
-      set({ email, participantId: r.participant_id, resumeToken: r.resume_token ?? token, stage: 'mesf' });
+      if (state.email && state.email !== email) {
+        // ⚠ 換了人：清掉前一個人在這台裝置上的作答進度，絕不讓新的人接到前一個人的題目（作答會寫到錯的人名下）
+        await MESF_CONFIG.store.clear();
+      }
+      set({ email, participantId: r.participant_id, resumeToken: r.resume_token ?? token, stage: 'mesf', skipped: undefined });
       route();
     } catch (e) {
       go.disabled = false;
@@ -165,6 +169,39 @@ function renderEmail(message?: string) {
   }
 }
 
+// ───────── 同一台裝置換人作答（2026-10-28 使用者決定：不綁裝置，email 不同就能再填一份） ─────────
+// 伺服器端本來就不綁裝置（一個 email 一份）；綁住的是這個瀏覽器裡的進度。換人時清掉前一個人的本機進度，
+// 從同意書重新開始（新的人要自己同意）。前一個人的接續憑證只存在這台裝置，清掉後他就無法再在此接續。
+
+/** 共用裝置上不顯示前一個人的完整 email：e***@gmail.com */
+function maskEmail(email: string): string {
+  const [user, domain] = email.split('@');
+  return `${user.slice(0, 1)}***@${domain ?? ''}`;
+}
+
+async function startOver() {
+  await MESF_CONFIG.store.clear();
+  state = { stage: 'consent' };
+  stateStore.save(state);
+  renderConsent();
+}
+
+function renderResumeChoice() {
+  const body = shell(root, { part: PART });
+  const msg = h('div');
+  const other = button('用另一個 email 開始', () => {
+    msg.replaceChildren(
+      h('p', { class: 'notice', text: '前一份作答的進度會從這台裝置移除，之後無法在這台裝置接續（已送出的作答不受影響）。' }),
+      button('確定，用另一個 email 開始', () => void startOver(), { id: 'confirm-start-over' }));
+  }, { kind: 'secondary', id: 'start-over' });
+  body.append(
+    h('h1', { class: 'title', text: '要繼續之前的作答嗎？' }),
+    h('p', { class: 'hint', text: `這台裝置上有一份尚未完成的作答（${maskEmail(state.email ?? '')}）。` }),
+    button('繼續作答', () => route(), { id: 'resume' }),
+    other, msg,
+  );
+}
+
 // ───────── 完成 ─────────
 function renderDone() {
   const body = shell(root, { part: PART, progress: 1 });
@@ -172,7 +209,9 @@ function renderDone() {
     h('div', { class: 'done-icon', text: '✓' }),
     h('h1', { class: 'title', text: '全部完成，謝謝你的參與' }),
     state.skipped ? h('p', { class: 'hint', text: '依你的作答結果，後半段的比較題已略過，你的作答已完整記錄。' }) : null,
-    h('p', { class: 'hint', text: '抽獎結果會寄到你填寫的 email。現在可以關閉這個頁面。' })));
+    h('p', { class: 'hint', text: '抽獎結果會寄到你填寫的 email。現在可以關閉這個頁面。' })),
+    h('p', { class: 'hint', text: '其他人也可以用這台裝置、以自己的 email 再填一份。' }),
+    button('用另一個 email 填寫', () => void startOver(), { kind: 'secondary', id: 'another' }));
 }
 
 // ───────── 路由 ─────────
@@ -194,4 +233,6 @@ function route() {
 
 document.documentElement.setAttribute('data-build', BUILD);
 shell(root, { part: PART }).append(spinner('載入中'));
-route();
+// 打開網址時若有未完成的作答，先問要繼續還是換人；其餘情況照常
+if (state.stage === 'mesf' && state.participantId && state.email) renderResumeChoice();
+else route();
