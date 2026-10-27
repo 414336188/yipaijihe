@@ -5,7 +5,8 @@
 //   「一拍即合」開發團隊與 yipaijihe.app@gmail.com（個資法第 8 條須告知蒐集者；使用者決定，2026-10-28）。
 // ⚠ 同意說明為 web-v1 的最小修改（2026-10-28 使用者同意）：標題、流程與題數、email 加抽獎用途、
 //   隱私權政策連結改為頁內的資料處理說明。研究目的用中性寫法，不透露「個人化 vs 隨機」，避免影響作答。
-//   【】是待使用者補上的內容；build.mjs 發布到 survey-v2/ 時，原始碼仍有【】就拒絕建置。
+//   email 刪除只寫「抽獎結束後」、不寫日期（使用者決定，2026-10-28；個資法第 8 條的利用期間已由此說明）。
+//   build.mjs 發布到 survey-v2/ 時，原始碼仍有全形方括號的待補標記就拒絕建置。
 import { createLiveMesfClient } from '@app/modules/mesfClient';
 import { API_BASE, ApiError, BUILD, deviceInfo, makeJsonStore, makeMesfStore, request, storageWorks } from '../core';
 import { runMesf, type MesfConfig } from '../mesf';
@@ -17,7 +18,6 @@ const CONSENT_VERSION = 'web-v2';
 const PART = '濾鏡偏好研究問卷';
 const COLLECTOR = '「一拍即合」開發團隊';
 const CONTACT = 'yipaijihe.app@gmail.com';
-const EMAIL_DELETE_BY = '【日期】';
 
 type Stage = 'consent' | 'email' | 'mesf' | 'done';
 interface V2State {
@@ -79,7 +79,7 @@ function renderConsent() {
       h('ul', null,
         h('li', { text: `蒐集者：${COLLECTOR}；聯絡信箱：${CONTACT}。` }),
         h('li', { text: '目的：學術研究分析，以及辨識作答者、避免重複作答、抽獎通知。' }),
-        h('li', { text: `期間：email 於抽獎結束後刪除（${EMAIL_DELETE_BY}前）；作答紀錄以代碼儲存供研究分析，email 刪除後即無法對應到你。` }),
+        h('li', { text: `期間：email 於抽獎結束後刪除；作答紀錄以代碼儲存供研究分析，email 刪除後即無法對應到你。` }),
         h('li', { text: '地區與對象：存放於研究團隊使用的雲端資料庫（伺服器可能位於台灣境外）；僅研究團隊與受託的雲端服務商處理，不出售、不提供給廣告商。' }),
         h('li', { text: `你的權利：可請求查詢、閱覽、製給複製本、補充或更正、停止利用或刪除。請來信 ${CONTACT} 並註明作答時使用的 email，我們將於 15 日內處理（必要時延長至 30 日並先告知）。` }),
         h('li', { text: '瀏覽器保存：作答進度、email 與接續憑證存在你的瀏覽器，只用於中斷後接續作答，不使用 Cookie 追蹤。' }),
