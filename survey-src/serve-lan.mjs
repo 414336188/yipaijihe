@@ -7,7 +7,8 @@ import { dirname, extname, join, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const site = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const ALLOW = [/^\/survey-next\/(index\.html|app\.js|style\.css)?$/, /^\/(privacy|terms)\.html$/, /^\/style\.css$/];
+const ALLOW = [/^\/survey-next\/(index\.html|app\.js|style\.css)?$/, /^\/survey-v2-next\/(index\.html|app\.js|style\.css)?$/,
+  /^\/(privacy|terms)\.html$/, /^\/style\.css$/];
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8' };
 const PORT = 8765;
 

@@ -1,7 +1,7 @@
 // 網頁版問卷主流程：同意 → email → 第一部分（偏好） → 過場 → 第二部分（比較） → 完成。
 import { runAblation } from './ablation';
 import { ApiError, BUILD, enter, loadState, saveState, storageWorks, type WebState } from './core';
-import { runMesf } from './mesf';
+import { runMesf, v1Config } from './mesf';
 import { button, errorText, h, shell, spinner } from './ui';
 
 const root = document.getElementById('app') as HTMLElement;
@@ -123,7 +123,7 @@ function route() {
   if (state.stage === 'email' || !state.userUuid) { renderEmail(); return; }
   const uuid = state.userUuid;
   if (state.stage === 'mesf') {
-    void runMesf(root, uuid).then((r) => {
+    void runMesf(root, uuid, v1Config()).then((r) => {
       if (r.kind === 'auth') { backToEmail('身分驗證失效，請重新輸入 email'); return; }
       set({ stage: 'transition', wHat: r.wHat });
       renderTransition(r.skippedComparison);

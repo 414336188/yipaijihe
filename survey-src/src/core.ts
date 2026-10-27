@@ -74,19 +74,28 @@ export function storageWorks(): boolean {
   return ok;
 }
 
-/** 偏好問卷控制器的本機紀錄（介面與 App 的 AsyncStorage 版相同）。 */
-export const mesfStore: MesfStore = {
-  async save(record: MesfLocalRecord) {
-    write(MESF_KEY, record);
-  },
-  async load() {
-    const r = read<MesfLocalRecord>(MESF_KEY);
-    return r && r.version === MESF_LOCAL_VERSION ? r : null;
-  },
-  async clear() {
-    remove(MESF_KEY);
-  },
-};
+/** 偏好問卷控制器的本機紀錄（介面與 App 的 AsyncStorage 版相同）。key 由各版本自訂，互不覆蓋。 */
+export function makeMesfStore(key: string): MesfStore {
+  return {
+    async save(record: MesfLocalRecord) {
+      write(key, record);
+    },
+    async load() {
+      const r = read<MesfLocalRecord>(key);
+      return r && r.version === MESF_LOCAL_VERSION ? r : null;
+    },
+    async clear() {
+      remove(key);
+    },
+  };
+}
+
+export const mesfStore: MesfStore = makeMesfStore(MESF_KEY);
+
+/** 任意 JSON 狀態的本機儲存（v2 用自己的 key；v1 沿用上面的 loadState／saveState）。 */
+export function makeJsonStore<T>(key: string) {
+  return { load: () => read<T>(key), save: (v: T) => write(key, v) };
+}
 
 // ───────────────────────── 裝置 ─────────────────────────
 
@@ -119,7 +128,7 @@ export class ApiError extends Error {
 
 const TIMEOUT_MS = 60_000;
 
-async function request<T>(path: string, init: RequestInit & { uuid?: string } = {}): Promise<T> {
+export async function request<T>(path: string, init: RequestInit & { uuid?: string } = {}): Promise<T> {
   const headers: Record<string, string> = { ...(init.headers as Record<string, string> | undefined) };
   if (init.body !== undefined) headers['Content-Type'] = 'application/json';
   if (init.uuid) headers['X-User-UUID'] = init.uuid;

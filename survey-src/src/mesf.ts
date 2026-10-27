@@ -1,7 +1,7 @@
 // 第一部分：偏好問卷（44 題）。出題、接續、逾期重建都交給 App 的 MesfController。
 import { createLiveMesfClient } from '@app/modules/mesfClient';
-import { MesfController } from '@app/modules/mesfController';
-import { MesfApiError } from '@app/modules/mesfApiTypes';
+import { MesfController, type MesfStore } from '@app/modules/mesfController';
+import { MesfApiError, type MesfClient } from '@app/modules/mesfApiTypes';
 import type { LoadedImage } from '@app/modules/mesfImage';
 import { API_BASE, BUILD, CONSENT_VERSION, mesfStore } from './core';
 import { button, choiceGrid, errorText, h, layoutChoices, measure, measureBox, onResize, shell, spinner, type Option } from './ui';
@@ -24,11 +24,59 @@ export type MesfOutcome =
 
 type W3 = [number, number, number];
 
-export function runMesf(root: HTMLElement, uuid: string): Promise<MesfOutcome> {
+/**
+ * 問卷版本之間不同的部分。未給的欄位一律是 v1（舊問卷）的值，v1 的行為與改版前相同。
+ * v2（濾鏡問卷 2 選 1）見 src/v2/main.ts。
+ */
+export interface MesfConfig {
+  client: (uuid: string) => MesfClient;
+  store: MesfStore;
+  consentVersion: string;
+  part: string;
+  /** 只用於進度條 */
+  totalGuess: number;
+  /** 送出校準後的預估等待秒數（v1 與 App 相同，check.mjs 比對） */
+  waitSec: number;
+  /** 照片不足（422）時，說明之後的下一步文字；null 表示問卷到此結束 */
+  noPoolNext: string | null;
+  /**
+   * 送出校準後等待頁的標題與說明。
+   * ⚠ v2 不可提「專屬」「依你的作答」：研究目的用中性寫法，不讓受測者知道兩張中有一張為他調色（2026-10-28 使用者決定）。
+   */
+  waitTitle: string;
+  waitHint: (sec: number) => string;
+  /** 伺服器 session 逾期且無法接續、需整份重來時的說明 */
+  restartText: string;
+  /** 最後送出（/complete）時的等待文字 */
+  finishText: string;
+}
+
+/**
+ * v1（舊問卷）的設定。⚠ 以函式產生、只由 src/main.ts 呼叫：寫成模組層常數的話，
+ * v2 的打包也會帶著這些文字（「專屬影像」等），看原始碼就看得到。
+ */
+export function v1Config(): MesfConfig {
+  return {
+    client: (uuid) => createLiveMesfClient(API_BASE, { getUserUuid: () => uuid }),
+    store: mesfStore,
+    consentVersion: CONSENT_VERSION,
+    part: PART,
+    totalGuess: TOTAL_GUESS,
+    waitSec: EXPECTED_WAIT_SEC,
+    noPoolNext: '第一部分到此結束，接著可以繼續第二部分。',
+    waitTitle: '正在為你產生專屬影像',
+    waitHint: (sec) => `這一步需要約 ${sec} 秒，系統正依你的作答重新算圖。`,
+    restartText: '上次的作答已逾時，需要重新開始第一部分。',
+    finishText: '正在送出第一部分',
+  };
+}
+
+export function runMesf(root: HTMLElement, uuid: string, cfg: MesfConfig): Promise<MesfOutcome> {
+  const { store: mesfStore, part: PART, totalGuess: TOTAL_GUESS, waitSec: EXPECTED_WAIT_SEC } = cfg;
   return new Promise((resolve) => {
-    const client = createLiveMesfClient(API_BASE, { getUserUuid: () => uuid });
-    // ⚠ 第五個參數是同意書版本：網頁版必須傳 web-v1，這是分辨資料來源的唯一欄位
-    const ctl = new MesfController(client, mesfStore, BUILD, () => new Date(), CONSENT_VERSION);
+    const client = cfg.client(uuid);
+    // ⚠ 第五個參數是同意書版本：網頁版必須傳 web-v1／web-v2，這是分辨資料來源的唯一欄位
+    const ctl = new MesfController(client, mesfStore, BUILD, () => new Date(), cfg.consentVersion);
 
     // 圖片快取：App 用 imageCache，這裡用 Promise 快取，失敗的不留
     const imgCache = new Map<string, Promise<LoadedImage>>();
@@ -82,7 +130,7 @@ export function runMesf(root: HTMLElement, uuid: string): Promise<MesfOutcome> {
       }
       await mesfStore.clear();
       const body = shell(root, { part: PART });
-      body.append(h('p', { class: 'notice', text: '上次的作答已逾時，需要重新開始第一部分。' }), spinner('正在準備題目'));
+      body.append(h('p', { class: 'notice', text: cfg.restartText }), spinner('正在準備題目'));
       start();
     };
 
@@ -99,7 +147,7 @@ export function runMesf(root: HTMLElement, uuid: string): Promise<MesfOutcome> {
       body.append(h('div', { class: 'center' },
         h('div', { class: 'spinner' }),
         h('p', { class: 'wait-title', text: title }),
-        h('p', { class: 'hint', text: `這一步需要約 ${EXPECTED_WAIT_SEC} 秒，系統正依你的作答重新算圖。` }),
+        h('p', { class: 'hint', text: cfg.waitHint(EXPECTED_WAIT_SEC) }),
         h('p', { class: 'warn', text: '請留在此頁面，不要關閉或重新整理' }),
         secEl));
     };
@@ -161,7 +209,7 @@ export function runMesf(root: HTMLElement, uuid: string): Promise<MesfOutcome> {
     };
 
     const submitCalibration = async () => {
-      waiting('正在為你產生專屬影像');
+      waiting(cfg.waitTitle);
       try {
         await ctl.submitCalibration();
         renderComparison();
@@ -172,8 +220,13 @@ export function runMesf(root: HTMLElement, uuid: string): Promise<MesfOutcome> {
           const w = e.body?.w_hat;
           if (Array.isArray(w) && w.length === 3 && w.every((v) => typeof v === 'number')) {
             const body = shell(root, { part: PART, progress: 1 });
-            body.append(h('p', { class: 'notice', text: NO_POOL_TEXT }),
-              h('p', { class: 'hint', text: '第一部分到此結束，接著可以繼續第二部分。' }),
+            body.append(h('p', { class: 'notice', text: NO_POOL_TEXT }));
+            if (cfg.noPoolNext === null) {
+              // v2：沒有第二部分，作答（校準＋ŵ）伺服器已記錄，直接結束
+              void finishWith(w as W3, true);
+              return;
+            }
+            body.append(h('p', { class: 'hint', text: cfg.noPoolNext }),
               button('繼續', () => void finishWith(w as W3, true)));
             return;
           }
@@ -262,7 +315,7 @@ export function runMesf(root: HTMLElement, uuid: string): Promise<MesfOutcome> {
 
     const finish = async () => {
       const body = shell(root, { part: PART, progress: 1 });
-      body.append(spinner('正在送出第一部分'));
+      body.append(spinner(cfg.finishText));
       try {
         await ctl.complete();
         const est = ctl.snapshot.estimate;

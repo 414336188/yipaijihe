@@ -2,6 +2,8 @@
 //
 //   node survey-src/build.mjs            → 產出到 survey-next/（開發與測試用）
 //   node survey-src/build.mjs --out survey → 正式發布時才用
+//   node survey-src/build.mjs --variant v2               → 濾鏡問卷 v2，產出到 survey-v2-next/
+//   node survey-src/build.mjs --variant v2 --out survey-v2 → v2 正式發布時才用（原始碼仍有【】待補內容即拒絕）
 //
 // ⚠ 出題邏輯直接沿用 App 專案的原始碼（../competition/src/modules），不重寫。
 //   兩份實作一定會在某一天不同步，而實驗一要求「呈現方式事先固定」。
@@ -22,7 +24,12 @@ const here = dirname(fileURLToPath(import.meta.url));
 const site = resolve(here, '..');
 const app = resolve(site, '..', 'competition');
 const outArg = process.argv.indexOf('--out');
-const outDir = resolve(site, outArg > 0 ? process.argv[outArg + 1] : 'survey-next');
+const varArg = process.argv.indexOf('--variant');
+const variant = varArg > 0 ? process.argv[varArg + 1] : 'v1';
+if (variant !== 'v1' && variant !== 'v2') throw new Error(`--variant 只能是 v1 或 v2：${variant}`);
+const outDir = resolve(site, outArg > 0 ? process.argv[outArg + 1] : variant === 'v2' ? 'survey-v2-next' : 'survey-next');
+const ENTRY = variant === 'v2' ? join(here, 'src', 'v2', 'main.ts') : join(here, 'src', 'main.ts');
+const INDEX = variant === 'v2' ? 'index-v2.html' : 'index.html';
 
 function findEsbuild() {
   // npx 快取的結構是 _npx/<雜湊>/node_modules/esbuild
@@ -59,14 +66,21 @@ try {
 
 // ⚠ 版本號同時涵蓋 App 共用模組與網頁版自己的原始碼。第一版只雜湊共用模組，
 //   網頁版改了版本號卻不變，事後就分不出資料是哪一版網頁收的。
-const OWN = ['index.html', 'style.css', ...readdirSync(join(here, 'src')).filter((f) => f.endsWith('.ts')).sort().map((f) => `src/${f}`)];
+const OWN = [INDEX, 'style.css', ...readdirSync(join(here, 'src')).filter((f) => f.endsWith('.ts')).sort().map((f) => `src/${f}`),
+  ...(variant === 'v2' ? readdirSync(join(here, 'src', 'v2')).filter((f) => f.endsWith('.ts')).sort().map((f) => `src/v2/${f}`) : [])];
 for (const f of OWN) sharedHash.update(`web:${f}`).update(readFileSync(join(here, f)));
-const BUILD = `web-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${sharedHash.digest('hex').slice(0, 8)}`;
+const BUILD = `${variant === 'v2' ? 'webv2' : 'web'}-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${sharedHash.digest('hex').slice(0, 8)}`;
+
+// ⚠ v2 的同意說明有【】待補內容（研究團隊名稱、聯絡信箱、email 刪除日期）。發布目錄不得帶著空白上線。
+if (variant === 'v2' && /[\\/]survey-v2$/.test(outDir)) {
+  const todo = OWN.filter((f) => readFileSync(join(here, f), 'utf8').includes('【'));
+  if (todo.length) throw new Error(`拒絕發布：${todo.join('、')} 仍有【】待補內容`);
+}
 
 const esbuild = findEsbuild();
 mkdirSync(outDir, { recursive: true });
 await esbuild.build({
-  entryPoints: [join(here, 'src', 'main.ts')],
+  entryPoints: [ENTRY],
   bundle: true,
   format: 'iife',
   // iOS 14.5／Safari 14.1 以上：esbuild 把更舊的 Safari 標為解構語法有瑕疵而拒絕轉換
@@ -84,6 +98,6 @@ await esbuild.build({
   logLevel: 'warning',
 });
 cpSync(join(here, 'style.css'), join(outDir, 'style.css'));
-const html = readFileSync(join(here, 'index.html'), 'utf8').replace(/__BUILD__/g, BUILD);
+const html = readFileSync(join(here, INDEX), 'utf8').replace(/__BUILD__/g, BUILD);
 writeFileSync(join(outDir, 'index.html'), html);
 console.log(`建置完成 ${BUILD}（App ${appCommit}）→ ${outDir}`);
