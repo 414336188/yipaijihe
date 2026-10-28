@@ -138,9 +138,10 @@ function windowWidth() { return Math.min(window.innerWidth, MAX_WIDTH); }
  *   手機瀏覽器多了網址列與工具列，套用同一個常數會讓圖片沒撐滿、按鈕不在最下方
  *   （2026-10-18 實機測試回報）。有量到的值就用量到的；排版規則（三角、2×2、
  *   上下疊）不變，只是尺寸以實際空間計算。
+ * @param portraitRow 校準直圖改為左中右並排（v2，2026-10-29 使用者決定）；未給即 App 的上 1 下 2
  */
 export function layoutChoices(options: Option[], fixedHeight: boolean, quad: boolean,
-  box?: { w: number; h: number }): Placed[][] {
+  box?: { w: number; h: number }, portraitRow = false): Placed[][] {
   const ww = windowWidth();
   const contentWidth = box ? box.w : Math.max(280, ww - 48);
   const avail = box ? Math.max(160, box.h) : Math.max(240, Math.floor(window.innerHeight - CALIBRATION_CHROME_HEIGHT));
@@ -164,6 +165,12 @@ export function layoutChoices(options: Option[], fixedHeight: boolean, quad: boo
       const hgt = Math.max(72, Math.floor((avail - OPTION_GAP * (options.length - 1)) / options.length));
       const w = Math.min(contentWidth, Math.floor(hgt * aspect0));
       return options.map((o) => [{ option: o, width: w, height: hgt, contain: true }]);
+    }
+    if (portraitRow) {
+      const n = options.length;
+      const hgt = Math.max(72, Math.floor(Math.min(avail, (rowContentWidth - OPTION_GAP * (n - 1) - 4) / n / aspect0)));
+      const w = hgt * aspect0;
+      return [options.map((o) => ({ option: o, width: w, height: hgt, contain: true }))];
     }
     const hgt = Math.max(72, Math.floor(Math.min((avail - OPTION_GAP) / 2, (rowContentWidth - OPTION_GAP - 4) / 2 / aspect0)));
     const w = hgt * aspect0;

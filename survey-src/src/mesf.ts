@@ -56,6 +56,8 @@ export interface MesfConfig {
   attention?: { title: string; hint: string };
   /** 換用 MesfController 的子類別（v2：可回上一題）。未給即 App 原本的控制器（v1：作答即鎖定） */
   makeController?: (...args: ConstructorParameters<typeof MesfController>) => MesfController;
+  /** 校準題的直圖左中右並排（v2，2026-10-29 使用者決定）。未給即 App 的上 1 下 2；橫圖一律上下疊 */
+  calibrationPortraitRow?: boolean;
 }
 
 /** 控制器若提供這兩個方法，比較題就顯示「上一題」（見 src/v2/controller.ts）。 */
@@ -207,7 +209,7 @@ export function runMesf(root: HTMLElement, uuid: string, cfg: MesfConfig): Promi
       slot.replaceChildren();
       let box = await measureBox(slot);
       const draw = () => {
-        slot.replaceChildren(choiceGrid(layoutChoices(options, true, false, box), selected, (s) => { selected = s; next.disabled = false; draw(); }, busy));
+        slot.replaceChildren(choiceGrid(layoutChoices(options, true, false, box, cfg.calibrationPortraitRow), selected, (s) => { selected = s; next.disabled = false; draw(); }, busy));
       };
       draw();
       onResize(slot, async () => { slot.replaceChildren(); box = await measureBox(slot); draw(); });
