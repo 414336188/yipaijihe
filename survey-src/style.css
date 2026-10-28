@@ -26,6 +26,8 @@ body { min-height: 100vh; }
 /* 題目畫面：高度固定為一個畫面，圖片區吃掉剩餘空間，按鈕在最下方。
    電腦上高度上限 844px（iPhone 的畫面高度），避免圖片在大螢幕上比手機大 */
 .page.fill { height: 100vh; height: min(100dvh, 844px); min-height: 0; }
+/* v2：電腦版放大時保留放大前的頁高，圖片跟著放大（見 ui.ts enableZoomableLayout）；v1 沒有 .zoomable，不受影響 */
+.zoomable .page.fill { height: var(--fill-h, min(100dvh, 844px)); }
 .body.fill { min-height: 0; overflow: hidden; }
 .grid-slot { flex: 1; min-height: 0; display: flex; align-items: flex-start; justify-content: center; overflow: hidden; }
 .topbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 8px 4px; }

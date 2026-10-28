@@ -82,6 +82,33 @@ export async function measureBox(el: HTMLElement): Promise<{ w: number; h: numbe
   return { w: Math.floor(r.width), h: Math.floor(r.height) };
 }
 
+/**
+ * 電腦版瀏覽器放大（Ctrl＋）時讓圖片跟著放大（v2，2026-10-28 組員回報）。
+ *
+ * ⚠ 校準題與四選一是「一個畫面放得下、不捲動」：頁高＝min(100dvh, 844px)，圖片依此計算。放大會讓
+ *   瀏覽器回報的 CSS 視窗變小、文字變大，結果圖片反而縮小（實測 100%→200%：289→196 px，標題 28→56 px）。
+ * 做法：放大（devicePixelRatio 變大）時保留放大前的頁高（CSS px），圖片隨倍率等比放大、頁面改為可捲動；
+ *   單純改變視窗大小（devicePixelRatio 不變）或縮小時照舊撐滿一個畫面。手機的雙指放大不改 devicePixelRatio，不受影響。
+ * 只有呼叫此函式的頁面（v2）會啟用；v1 不呼叫，行為不變。
+ */
+export function enableZoomableLayout(): void {
+  const FILL_MAX = 844;
+  let baseDpr = 0;
+  let baseH = 0;
+  const update = () => {
+    const dpr = window.devicePixelRatio || 1;
+    const fit = Math.min(window.innerHeight, FILL_MAX);
+    if (!baseDpr || dpr <= baseDpr + 1e-3) {
+      baseDpr = dpr;
+      baseH = fit;
+    }
+    document.documentElement.style.setProperty('--fill-h', `${dpr > baseDpr + 1e-3 ? baseH : fit}px`);
+  };
+  document.documentElement.classList.add('zoomable');
+  update();
+  window.addEventListener('resize', update);
+}
+
 /** 視窗大小改變（轉向、網址列收合）時重新排版；畫面離開後自動解除 */
 export function onResize(el: HTMLElement, redraw: () => void) {
   let t = 0;

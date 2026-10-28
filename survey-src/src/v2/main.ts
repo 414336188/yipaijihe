@@ -10,7 +10,7 @@
 import { createLiveMesfClient } from '@app/modules/mesfClient';
 import { API_BASE, ApiError, BUILD, deviceInfo, makeJsonStore, makeMesfStore, request, storageWorks } from '../core';
 import { runMesf, type MesfConfig } from '../mesf';
-import { button, errorText, h, shell, spinner } from '../ui';
+import { button, enableZoomableLayout, errorText, h, shell, spinner } from '../ui';
 import { v2Fetch } from './adapter';
 import { V2Controller } from './controller';
 
@@ -232,6 +232,7 @@ function route() {
 }
 
 document.documentElement.setAttribute('data-build', BUILD);
+enableZoomableLayout();
 shell(root, { part: PART }).append(spinner('載入中'));
 // 打開網址時若有未完成的作答，先問要繼續還是換人；其餘情況照常
 if (state.stage === 'mesf' && state.participantId && state.email) renderResumeChoice();
