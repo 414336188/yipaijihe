@@ -49,6 +49,11 @@ export interface MesfConfig {
   restartText: string;
   /** 最後送出（/complete）時的等待文字 */
   finishText: string;
+  /**
+   * 注意力題的問句。未給即與比較題相同（v1：「哪一個比較好看」，喜歡黑白的人會被誤判）。
+   * v2 改為明確指示選彩色那張（2026-10-28 使用者決定）。
+   */
+  attention?: { title: string; hint: string };
   /** 換用 MesfController 的子類別（v2：可回上一題）。未給即 App 原本的控制器（v1：作答即鎖定） */
   makeController?: (...args: ConstructorParameters<typeof MesfController>) => MesfController;
 }
@@ -272,8 +277,11 @@ export function runMesf(root: HTMLElement, uuid: string, cfg: MesfConfig): Promi
         part: PART, progress: answeredSoFar() / TOTAL_GUESS, fill: quad,
         onBack: backCapable(ctl) && ctl.canGoBack() ? () => void goBack() : undefined,
       });
+      // 注意力題（正常圖 vs 灰階圖）：v2 改為明確指示（cfg.attention）；v1 未設定，沿用與比較題相同的問句
+      const attn = cfg.attention && view.key.startsWith('attention:') ? cfg.attention : null;
       body.append(h('p', { class: 'eyebrow', text: `第 ${view.position}／${view.total} 題` }),
-        h('h1', { class: 'title', text: quad ? QUAD_TITLE : COMPARISON_TITLE }));
+        h('h1', { class: 'title', text: attn ? attn.title : quad ? QUAD_TITLE : COMPARISON_TITLE }));
+      if (attn) body.append(h('p', { class: 'hint', text: attn.hint }));
       const slot = h('div', { class: quad ? 'grid-slot' : '' });
       body.append(slot);
       slot.append(spinner('圖片載入中…'));

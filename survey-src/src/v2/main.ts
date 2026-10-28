@@ -46,6 +46,8 @@ const MESF_CONFIG: Omit<MesfConfig, 'client'> = {
   finishText: '正在送出作答',
   // 可回上一題重選（2026-10-28 使用者決定：只能回上一題、以最後一次為準、注意力題也可改）
   makeController: (...args) => new V2Controller(...args),
+  // 注意力題明確指示（2026-10-28 使用者決定）；判定規則不變：兩題都選灰階才排除
+  attention: { title: '這一題請選擇彩色的那張照片', hint: '這一題用於確認作答狀態，不影響你的作答結果。' },
 };
 
 const root = document.getElementById('app') as HTMLElement;
