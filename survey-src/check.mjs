@@ -74,6 +74,29 @@ check('控制器：answerComparison 經 retryPending 送出、成功後 position
   ctlSrc.includes('await this.retryPending();') && ctlSrc.includes('this.position += 1;'));
 check('控制器：本機作答紀錄有 chosen_side', ctlSrc.includes("chosen_side: 'left' | 'right' | null;"));
 
+// ── v3 與 v2 只差常數 ──
+// ⚠ v3 的轉接層與主流程是 v2 的複本（只換版本字串、儲存鍵、入口網址）；v2 改了而 v3 沒跟上，這裡就會失敗。
+{
+  const norm = (s) => {
+    let t = s;
+    for (const [a, b] of [['filter-v2', 'filter-v3'], ['web-v2', 'web-v3'], ['filter-survey-v2', 'filter-survey-v3'],
+      ['web-survey-v2', 'web-survey-v3'], ['v2 只能連線問卷伺服器', 'v3 只能連線問卷伺服器'], ['v2Fetch', 'v3Fetch'], ['V2State', 'V3State'], ["'./controller'", "'../v2/controller'"]]) {
+      t = t.split(a).join(b);
+    }
+    // 等待秒數各版依實測設定（v3 出題較快），不算差異
+    t = t.replace(/waitSec: \d+,/g, 'waitSec: N,');
+    return t.split(/\r?\n/).filter((l) => {
+      const x = l.trim();
+      return !(x.startsWith('//') || x.startsWith('*') || x.startsWith('/**'));
+    }).join('\n');
+  };
+  for (const f of ['adapter.ts', 'main.ts']) {
+    const v2 = norm(read(join(here, 'src/v2', f)));
+    const v3 = norm(read(join(here, 'src/v3', f)));
+    check(`v3 與 v2 只差常數：${f}`, v2 === v3);
+  }
+}
+
 // ── 電腦版限制寬度 ──
 const maxW = constOf(webUi, 'MAX_WIDTH');
 check('電腦版題目區寬度上限（ui.ts 與 style.css 一致）', maxW !== null && css.includes(`max-width: ${maxW}px`), `${maxW}px`);
