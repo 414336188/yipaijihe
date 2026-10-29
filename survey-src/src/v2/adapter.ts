@@ -16,10 +16,10 @@ export const SURVEY_VERSION = 'filter-v2';
 const PARTICIPANT_HEADER = 'X-Survey-Participant';
 /**
  * 4. 逾時：App 的連線程式固定 120 秒中斷（mesfClient 的 LIVE_TIMEOUT_MS，不改 App）。v2 送出校準要 57～77 秒，
- *    多人同時送出會更久，伺服器轉發上限已改 180 秒（mesf_proxy）。這兩個端點不用 App 的中斷訊號，改用自己的
- *    200 秒（略長於伺服器，讓伺服器先回 504、畫面顯示可重試的錯誤，而不是瀏覽器先放棄）。
+ *    多人同時送出會更久，伺服器轉發上限已改 300 秒（mesf_proxy，2026-10-29 方案 B1 由 180 秒放寬）。這兩個端點
+ *    不用 App 的中斷訊號，改用自己的 320 秒（略長於伺服器，讓伺服器先回 504、畫面顯示可重試的錯誤，而不是瀏覽器先放棄）。
  */
-const LONG_TIMEOUT_MS = 200_000;
+const LONG_TIMEOUT_MS = 320_000;
 
 type Json = Record<string, unknown>;
 
