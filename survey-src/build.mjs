@@ -3,7 +3,7 @@
 //   node survey-src/build.mjs            → 產出到 survey-next/（開發與測試用）
 //   node survey-src/build.mjs --out survey → 正式發布時才用
 //   node survey-src/build.mjs --variant v2               → 濾鏡問卷 v2，產出到 survey-v2-next/
-//   node survey-src/build.mjs --variant v2 --out survey-v2 → v2 正式發布時才用（原始碼仍有【】待補內容即拒絕）
+//   ⚠ v2 已停用（2026-10-31 改用 v3）：survey-v2/ 是導向 v3 的頁面，--variant v2 --out survey-v2 一律拒絕
 //   node survey-src/build.mjs --variant v3               → 濾鏡問卷 v3（與 v2 只差常數），產出到 survey-v3-next/
 //   node survey-src/build.mjs --variant v3 --out survey-v3 → v3 正式發布時才用（同樣拒絕【】待補內容）
 //
@@ -32,6 +32,9 @@ if (variant !== 'v1' && variant !== 'v2' && variant !== 'v3') throw new Error(`-
 const outDir = resolve(site, outArg > 0 ? process.argv[outArg + 1] : variant === 'v3' ? 'survey-v3-next' : variant === 'v2' ? 'survey-v2-next' : 'survey-next');
 const ENTRY = variant === 'v3' ? join(here, 'src', 'v3', 'main.ts') : variant === 'v2' ? join(here, 'src', 'v2', 'main.ts') : join(here, 'src', 'main.ts');
 const INDEX = variant === 'v3' ? 'index-v3.html' : variant === 'v2' ? 'index-v2.html' : 'index.html';
+// ⚠ v2 已停用（2026-10-31 使用者決定：v2 只是測試，資料已刪、改用 v3）。survey-v2/ 只剩導向 v3 的頁面，
+//   重新發布 v2 會讓舊連結又能作答。v2 的原始碼仍保留（v3 建立在 src/v2/ 之上），survey-v2-next/ 仍可建置測試。
+if (variant === 'v2' && /[\\/]survey-v2$/.test(outDir)) throw new Error('拒絕發布：濾鏡問卷 v2 已停用，survey-v2/ 是導向 v3 的頁面');
 
 function findEsbuild() {
   // npx 快取的結構是 _npx/<雜湊>/node_modules/esbuild
