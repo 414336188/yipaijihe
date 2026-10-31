@@ -56,7 +56,7 @@ export interface MesfConfig {
   attention?: { title: string; hint: string };
   /** 換用 MesfController 的子類別（v2：可回上一題）。未給即 App 原本的控制器（v1：作答即鎖定） */
   makeController?: (...args: ConstructorParameters<typeof MesfController>) => MesfController;
-  /** 校準題一律左中右並排（v2；直圖 2026-10-29、橫圖 2026-10-30 使用者決定）。未給即 App 的橫圖上下疊、直圖上 1 下 2 */
+  /** 網頁版校準題排法：直圖左中右並排、橫圖上中下（扣框線）。未給即 App 的橫圖上下疊、直圖上 1 下 2 */
   calibrationRow?: boolean;
 }
 

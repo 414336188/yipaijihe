@@ -69,6 +69,8 @@ export function shell(root: HTMLElement, opts: { part: string; progress?: number
 const OPTION_GAP = 10;
 const CALIBRATION_CHROME_HEIGHT = 300;
 const CALIBRATION_ROW_GUTTER = 8;
+/** 選項卡片上下框線合計（style.css 的 .choice 為 1.5px × 2）；只用在網頁版校準題的橫圖上中下 */
+const CARD_BORDER_Y = 3;
 /**
  * ⚠ 電腦螢幕上把題目區限制在手機寬度。不限制的話照片會大好幾倍，細微差異
  *   （尤其是畸變校正）比在手機上容易看出來，網頁與 App 的資料就不可比。
@@ -138,8 +140,8 @@ function windowWidth() { return Math.min(window.innerWidth, MAX_WIDTH); }
  *   手機瀏覽器多了網址列與工具列，套用同一個常數會讓圖片沒撐滿、按鈕不在最下方
  *   （2026-10-18 實機測試回報）。有量到的值就用量到的；排版規則（三角、2×2、
  *   上下疊）不變，只是尺寸以實際空間計算。
- * @param calibrationRow 校準三選一一律左中右並排（v2；直圖 2026-10-29、橫圖 2026-10-30 使用者決定）；
- *   未給即 App 的橫圖上下疊、直圖上 1 下 2
+ * @param calibrationRow 網頁版（v2／v3）的校準三選一：直圖左中右並排（2026-10-29 使用者決定）；
+ *   橫圖上中下（10-30 曾改並排，2026-10-31 使用者決定改回），並扣掉卡片框線。未給即 App 的橫圖上下疊、直圖上 1 下 2
  */
 export function layoutChoices(options: Option[], fixedHeight: boolean, quad: boolean,
   box?: { w: number; h: number }, calibrationRow = false): Placed[][] {
@@ -163,9 +165,14 @@ export function layoutChoices(options: Option[], fixedHeight: boolean, quad: boo
   if (fixedHeight) {
     if (calibrationRow) {
       const n = options.length;
-      const fit = Math.floor(Math.min(avail, (rowContentWidth - OPTION_GAP * (n - 1) - 4) / n / aspect0));
-      // ⚠ 橫圖不套 72 的下限：360px 寬的手機 fit 只有約 67，套下限會超出畫面寬度、C 被裁掉
-      const hgt = aspect0 >= 1 ? fit : Math.max(72, fit);
+      if (aspect0 >= 1) {
+        // ⚠ 扣掉每張卡片的上下框線：frame 高度不含框線，App 的公式沒扣，三張疊起來超出圖片區約 9px，
+        //   第三張底部被 .grid-slot 的 overflow: hidden 裁掉（2026-10-30 模擬圖看到）。App 的分支不動。
+        const hgt = Math.max(72, Math.floor((avail - OPTION_GAP * (n - 1) - CARD_BORDER_Y * n) / n));
+        const w = Math.min(contentWidth, Math.floor(hgt * aspect0));
+        return options.map((o) => [{ option: o, width: w, height: hgt, contain: true }]);
+      }
+      const hgt = Math.max(72, Math.floor(Math.min(avail, (rowContentWidth - OPTION_GAP * (n - 1) - 4) / n / aspect0)));
       const w = hgt * aspect0;
       return [options.map((o) => ({ option: o, width: w, height: hgt, contain: true }))];
     }

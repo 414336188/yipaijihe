@@ -48,7 +48,7 @@ const MESF_CONFIG: Omit<MesfConfig, 'client'> = {
   makeController: (...args) => new V2Controller(...args),
   // 注意力題明確指示（2026-10-28 使用者決定）；判定規則不變：兩題都選灰階才排除
   attention: { title: '這一題請選擇彩色的那張照片', hint: '這一題用於確認作答狀態，不影響你的作答結果。' },
-  // 校準題左中右並排：直圖 2026-10-29、橫圖 2026-10-30 使用者決定（手機可雙指放大看圖）
+  // 校準題：直圖左中右並排（2026-10-29）、橫圖上中下（2026-10-31 使用者決定改回）
   calibrationRow: true,
 };
 
